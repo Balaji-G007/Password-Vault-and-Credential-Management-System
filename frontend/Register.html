@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vaultkeep — Create Vault</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0E1220;
+    --surface: #161B2C;
+    --surface-raised: #1C2238;
+    --border: #2A3149;
+    --border-soft: #232A40;
+    --text: #E9E7E0;
+    --text-muted: #8B92A8;
+    --text-faint: #545C74;
+    --accent: #C9A66B;
+    --accent-dim: #9E8455;
+    --teal: #4FD1C5;
+    --error: #E2685B;
+    --radius: 10px;
+    --font-display: 'Sora', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+    align-items: stretch;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  /* ---------- Brand panel ---------- */
+  .brand {
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(201,166,107,0.08), transparent 55%),
+      linear-gradient(180deg, #10152400, #0A0D17 120%),
+      var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 48px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .brand::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border-soft) 1px, transparent 1px);
+    background-size: 42px 42px;
+    opacity: 0.25;
+    mask-image: radial-gradient(circle at 50% 45%, black 0%, transparent 70%);
+  }
+
+  .brand-mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.02em;
+    z-index: 1;
+  }
+
+  .brand-mark .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+
+  .dial-wrap {
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    margin: auto 0;
+  }
+
+  .dial { width: 220px; height: 220px; }
+
+  .dial-ring { fill: none; stroke: var(--border); stroke-width: 1; }
+  .dial-tick { stroke: var(--text-faint); stroke-width: 1.5; }
+  .dial-tick.major { stroke: var(--accent-dim); stroke-width: 2; }
+  .dial-center { fill: var(--surface-raised); stroke: var(--border); stroke-width: 1; }
+  .dial-needle {
+    stroke: var(--accent);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    transform-origin: 110px 110px;
+    animation: sweep 7s cubic-bezier(.65,0,.35,1) infinite;
+  }
+
+  @keyframes sweep {
+    0%   { transform: rotate(-40deg); }
+    35%  { transform: rotate(120deg); }
+    55%  { transform: rotate(70deg); }
+    80%  { transform: rotate(220deg); }
+    100% { transform: rotate(-40deg); }
+  }
+
+  .cipher-line {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: var(--teal);
+    min-height: 18px;
+    text-align: center;
+  }
+
+  .brand-copy { z-index: 1; }
+  .brand-copy h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 26px;
+    line-height: 1.35;
+    max-width: 380px;
+    color: var(--text);
+  }
+  .brand-copy p {
+    margin-top: 12px;
+    color: var(--text-muted);
+    font-size: 14px;
+    max-width: 360px;
+    line-height: 1.6;
+  }
+
+  .brand-foot {
+    z-index: 1;
+    display: flex;
+    gap: 24px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+  }
+
+  /* ---------- Form panel ---------- */
+  .panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+  }
+
+  .card { width: 100%; max-width: 380px; }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-dim);
+    margin-bottom: 10px;
+  }
+
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 22px;
+    margin-bottom: 6px;
+  }
+  .subhead {
+    color: var(--text-muted);
+    font-size: 13.5px;
+    margin-bottom: 28px;
+  }
+
+  form { display: flex; flex-direction: column; gap: 18px; }
+
+  .field { display: flex; flex-direction: column; gap: 7px; }
+  .field label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .input-wrap { position: relative; }
+
+  .input-wrap input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 40px 12px 13px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .input-wrap input::placeholder { color: var(--text-faint); font-family: var(--font-body); }
+  .input-wrap input:focus {
+    border-color: var(--accent);
+    background: var(--surface-raised);
+  }
+  .input-wrap input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .input-wrap input.invalid { border-color: var(--error); }
+
+  .toggle-visibility {
+    position: absolute;
+    right: 10px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none;
+    color: var(--text-faint);
+    cursor: pointer;
+    padding: 4px;
+    line-height: 0;
+  }
+  .toggle-visibility:hover { color: var(--text-muted); }
+  .toggle-visibility:focus-visible { outline: 2px solid var(--accent); border-radius: 4px; }
+
+  .error-msg {
+    font-size: 12px;
+    color: var(--error);
+    min-height: 14px;
+    font-family: var(--font-mono);
+  }
+
+  .strength { display: flex; gap: 5px; margin-top: 2px; }
+  .strength i {
+    flex: 1; height: 3px; border-radius: 2px;
+    background: var(--border);
+    transition: background 0.25s ease;
+  }
+  .strength-label {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text-faint);
+    margin-top: 4px;
+  }
+
+  .checkbox-line { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 12.5px; }
+  .checkbox-line input { accent-color: var(--accent); width: 14px; height: 14px; margin-top: 1px; }
+  .link { color: var(--accent); text-decoration: none; }
+  .link:hover { text-decoration: underline; }
+
+  .submit-btn {
+    margin-top: 6px;
+    background: var(--accent);
+    color: #191307;
+    border: none;
+    border-radius: 8px;
+    padding: 13px 0;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: filter 0.2s ease, transform 0.1s ease;
+  }
+  .submit-btn:hover { filter: brightness(1.08); }
+  .submit-btn:active { transform: translateY(1px); }
+  .submit-btn:disabled { opacity: 0.55; cursor: not-allowed; filter: none; }
+  .submit-btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+  .switch-line {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 22px;
+  }
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    .brand { display: none; }
+    .panel { padding: 32px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- Brand / signature panel -->
+  <aside class="brand">
+    <div class="brand-mark"><span class="dot"></span>VAULTKEEP</div>
+
+    <div class="dial-wrap">
+      <svg class="dial" viewBox="0 0 220 220" aria-hidden="true">
+        <circle class="dial-ring" cx="110" cy="110" r="95"></circle>
+        <g id="ticks"></g>
+        <line class="dial-needle" x1="110" y1="110" x2="110" y2="34"></line>
+        <circle class="dial-center" cx="110" cy="110" r="16"></circle>
+      </svg>
+      <div class="cipher-line" id="cipherLine">&nbsp;</div>
+    </div>
+
+    <div class="brand-copy">
+      <h1>Every credential, one combination away.</h1>
+      <p>Zero-knowledge encryption keeps your vault unreadable to anyone but you — not even us.</p>
+    </div>
+
+    <div class="brand-foot">
+      <span>AES-256</span>
+      <span>ZERO-KNOWLEDGE</span>
+      <span>SOC 2</span>
+    </div>
+  </aside>
+
+  <!-- Form panel -->
+  <main class="panel">
+    <div class="card">
+
+      <div class="eyebrow">Create vault</div>
+      <h2>Set up your vault</h2>
+      <p class="subhead">This master password is the only key — choose carefully.</p>
+
+      <form id="registerForm" novalidate>
+        <div class="field">
+          <label for="regName">Full name</label>
+          <div class="input-wrap">
+            <input type="text" id="regName" placeholder="Jordan Blake" autocomplete="name" required>
+          </div>
+          <div class="error-msg" id="regNameError"></div>
+        </div>
+
+        <div class="field">
+          <label for="regEmail">Email</label>
+          <div class="input-wrap">
+            <input type="email" id="regEmail" placeholder="you@domain.com" autocomplete="username" required>
+          </div>
+          <div class="error-msg" id="regEmailError"></div>
+        </div>
+
+        <div class="field">
+          <label for="regPassword">Master password</label>
+          <div class="input-wrap">
+            <input type="password" id="regPassword" placeholder="At least 6 characters" autocomplete="new-password" required>
+            <button type="button" class="toggle-visibility" data-target="regPassword" aria-label="Show password">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="strength" id="strengthBars"><i></i><i></i><i></i><i></i></div>
+          <div class="strength-label" id="strengthLabel">&nbsp;</div>
+          <div class="error-msg" id="regPasswordError"></div>
+        </div>
+
+        <div class="field">
+          <label for="regConfirm">Confirm master password</label>
+          <div class="input-wrap">
+            <input type="password" id="regConfirm" placeholder="Re-enter password" autocomplete="new-password" required>
+            <button type="button" class="toggle-visibility" data-target="regConfirm" aria-label="Show password">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <div class="error-msg" id="regConfirmError"></div>
+        </div>
+
+        <label class="checkbox-line">
+          <input type="checkbox" id="ackNote" required>
+          I understand Vaultkeep cannot recover this password if lost.
+        </label>
+
+        <button type="submit" class="submit-btn" id="registerSubmit">Create vault</button>
+      </form>
+
+      <p class="switch-line">Already have a vault? <a href="Login.html" class="link">Sign in</a></p>
+
+    </div>
+  </main>
+
+</div>
+
+<script>
+  /* ---------------- Dial ticks ---------------- */
+  const ticksGroup = document.getElementById('ticks');
+  for (let i = 0; i < 40; i++) {
+    const angle = (i / 40) * 360;
+    const major = i % 5 === 0;
+    const r1 = major ? 78 : 84;
+    const r2 = 95;
+    const rad = (angle * Math.PI) / 180;
+    const x1 = 110 + r1 * Math.sin(rad);
+    const y1 = 110 - r1 * Math.cos(rad);
+    const x2 = 110 + r2 * Math.sin(rad);
+    const y2 = 110 - r2 * Math.cos(rad);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+    line.setAttribute('class', 'dial-tick' + (major ? ' major' : ''));
+    ticksGroup.appendChild(line);
+  }
+
+  /* ---------------- Cipher decrypt text ---------------- */
+  const cipherEl = document.getElementById('cipherLine');
+  const glyphs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#%&$*<>{}[]01';
+  const phrases = ['ENCRYPTING', 'AES-256 · GCM', 'VAULT SECURED', 'ZERO-KNOWLEDGE'];
+  let phraseIndex = 0;
+
+  function scrambleTo(target, duration = 900) {
+    const steps = 14;
+    let step = 0;
+    const interval = setInterval(() => {
+      step++;
+      let out = '';
+      for (let i = 0; i < target.length; i++) {
+        if (target[i] === ' ' || target[i] === '·' || target[i] === '-') { out += target[i]; continue; }
+        const revealAt = (i / target.length) * steps;
+        out += step >= revealAt + (steps - 4) ? target[i] : glyphs[Math.floor(Math.random() * glyphs.length)];
+      }
+      cipherEl.textContent = out;
+      if (step >= steps) clearInterval(interval);
+    }, duration / steps);
+  }
+
+  function cycleCipher() {
+    scrambleTo(phrases[phraseIndex]);
+    phraseIndex = (phraseIndex + 1) % phrases.length;
+  }
+  cycleCipher();
+  setInterval(cycleCipher, 3200);
+
+  /* ---------------- Show/hide password ---------------- */
+  document.querySelectorAll('.toggle-visibility').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.target);
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    });
+  });
+
+  /* ---------------- Validation helpers ---------------- */
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  function setError(inputId, errorId, message) {
+    document.getElementById(inputId).classList.toggle('invalid', Boolean(message));
+    document.getElementById(errorId).textContent = message || '';
+  }
+
+  /* ---------------- Password strength ---------------- */
+  const strengthBars = document.querySelectorAll('#strengthBars i');
+  const strengthLabel = document.getElementById('strengthLabel');
+  const strengthColors = ['#E2685B', '#E2A85B', '#D9C24F', '#4FD1C5'];
+  const strengthWords = ['Weak', 'Fair', 'Good', 'Strong'];
+
+  function scorePassword(pw) {
+    let score = 0;
+    if (pw.length >= 12) score++;
+    if (pw.length >= 16) score++;
+    if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++;
+    if (/\d/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    return Math.min(score, 4);
+  }
+
+  document.getElementById('regPassword').addEventListener('input', (e) => {
+    const pw = e.target.value;
+    const score = pw.length ? Math.max(scorePassword(pw), 1) : 0;
+    strengthBars.forEach((bar, i) => {
+      bar.style.background = i < score ? strengthColors[score - 1] : 'var(--border)';
+    });
+    strengthLabel.textContent = pw ? strengthWords[score - 1] : '';
+    strengthLabel.style.color = pw ? strengthColors[score - 1] : 'var(--text-faint)';
+  });
+
+  /* ---------------- Register submit ---------------- */
+  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const confirm = document.getElementById('regConfirm').value;
+    const ack = document.getElementById('ackNote').checked;
+
+    setError('regName', 'regNameError', '');
+    setError('regEmail', 'regEmailError', '');
+    setError('regPassword', 'regPasswordError', '');
+    setError('regConfirm', 'regConfirmError', '');
+
+    let valid = true;
+    if (name.length < 2) { setError('regName', 'regNameError', 'Enter your name.'); valid = false; }
+    if (!emailRe.test(email)) { setError('regEmail', 'regEmailError', 'Enter a valid email address.'); valid = false; }
+    if (password.length < 6) { setError('regPassword', 'regPasswordError', 'Use at least 6 characters.'); valid = false; }
+    if (confirm !== password || !confirm) { setError('regConfirm', 'regConfirmError', 'Passwords do not match.'); valid = false; }
+    if (!ack) valid = false;
+    if (!valid) return;
+
+    const btn = document.getElementById('registerSubmit');
+    btn.disabled = true;
+    btn.textContent = 'Creating vault…';
+
+    const API_BASE = 'http://localhost:8081';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Could not create vault.');
+      }
+
+      btn.textContent = 'Vault created ✓';
+      window.location.href = "Login.html";
+    } catch (err) {
+      setError('regEmail', 'regEmailError', err.message || 'Could not create vault.');
+      btn.textContent = 'Create vault';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>

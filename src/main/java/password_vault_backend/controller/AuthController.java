@@ -2,6 +2,7 @@ package password_vault_backend.controller;
 
 import password_vault_backend.model.User;
 import password_vault_backend.repository.UserRepository;
+import password_vault_backend.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
@@ -19,8 +20,7 @@ public class AuthController {
     @Autowired private UserRepository userRepository;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private JavaMailSender mailSender;
-
-    // ---- existing register/login stay exactly as they are ----
+    @Autowired private JwtUtil jwtUtil;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
@@ -43,27 +43,21 @@ public class AuthController {
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             return ResponseEntity.status(401).body(Map.of("message", "Invalid email or password."));
         }
-        return ResponseEntity.ok(Map.of("name", user.getName(), "email", user.getEmail()));
+        String token = jwtUtil.generateToken(user.getEmail());
+        return ResponseEntity.ok(Map.of("token", token, "name", user.getName(), "email", user.getEmail()));
     }
-
-    // ---- NEW: forgot password / OTP ----
 
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         User user = userRepository.findByEmail(request.getEmail());
-
-        // Always respond the same way whether or not the email exists
         if (user == null) {
             return ResponseEntity.ok(Map.of("message", "If that email exists, an OTP has been sent."));
         }
-
-        String otp = String.valueOf(100000 + new Random().nextInt(900000)); // 6-digit code
-        long expiry = System.currentTimeMillis() + (10 * 60 * 1000); // 10 minutes
-
+        String otp = String.valueOf(100000 + new Random().nextInt(900000));
+        long expiry = System.currentTimeMillis() + (10 * 60 * 1000);
         user.setOtp(otp);
         user.setOtpExpiry(expiry);
         userRepository.save(user);
-
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(user.getEmail());
@@ -74,18 +68,13 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("message", "Could not send email. Check server email configuration."));
         }
-
         return ResponseEntity.ok(Map.of("message", "If that email exists, an OTP has been sent."));
     }
 
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
         User user = userRepository.findByEmail(request.getEmail());
-
-        if (user == null || user.getOtp() == null) {
-            return ResponseEntity.status(400).body(Map.of("message", "Invalid OTP."));
-        }
-        if (!user.getOtp().equals(request.getOtp())) {
+        if (user == null || user.getOtp() == null || !user.getOtp().equals(request.getOtp())) {
             return ResponseEntity.status(400).body(Map.of("message", "Invalid OTP."));
         }
         if (System.currentTimeMillis() > user.getOtpExpiry()) {
@@ -94,16 +83,12 @@ public class AuthController {
         if (request.getNewPassword() == null || request.getNewPassword().length() < 6) {
             return ResponseEntity.status(400).body(Map.of("message", "Password must be at least 6 characters."));
         }
-
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setOtp(null);
         user.setOtpExpiry(null);
         userRepository.save(user);
-
         return ResponseEntity.ok(Map.of("message", "Password reset successfully. You can now sign in."));
     }
-
-    // ---- request body classes ----
 
     public static class RegisterRequest {
         private String name, email, password;

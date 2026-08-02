@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vaultkeep — Your Vault</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0E1220;
+    --surface: #161B2C;
+    --surface-raised: #1C2238;
+    --border: #2A3149;
+    --border-soft: #232A40;
+    --text: #E9E7E0;
+    --text-muted: #8B92A8;
+    --text-faint: #545C74;
+    --accent: #C9A66B;
+    --accent-dim: #9E8455;
+    --teal: #4FD1C5;
+    --error: #E2685B;
+    --font-display: 'Sora', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .brand-mark {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-display); font-weight: 700; font-size: 18px;
+  }
+  .brand-mark .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  .user-info { display: flex; align-items: center; gap: 16px; font-size: 13.5px; color: var(--text-muted); }
+  .logout-btn {
+    background: none; border: 1px solid var(--border); color: var(--text-muted);
+    padding: 7px 14px; border-radius: 7px; font-size: 13px; cursor: pointer;
+    font-family: var(--font-body);
+  }
+  .logout-btn:hover { border-color: var(--error); color: var(--error); }
+
+  main { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+
+  .page-title { font-family: var(--font-display); font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+  .page-subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 28px; }
+
+  .add-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; margin-bottom: 28px;
+  }
+  .add-card h3 { font-family: var(--font-display); font-size: 15px; margin-bottom: 14px; }
+  .add-form { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+  .field input {
+    background: var(--surface-raised); border: 1px solid var(--border); border-radius: 7px;
+    padding: 10px 11px; color: var(--text); font-family: var(--font-mono); font-size: 13.5px; outline: none;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .save-btn {
+    background: var(--accent); color: #191307; border: none; border-radius: 7px;
+    padding: 10px 18px; font-weight: 600; font-size: 13.5px; cursor: pointer; white-space: nowrap;
+  }
+  .save-btn:hover { filter: brightness(1.08); }
+  .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .form-error { color: var(--error); font-size: 12.5px; margin-top: 8px; }
+
+  .vault-list { display: flex; flex-direction: column; gap: 10px; }
+  .empty-state {
+    text-align: center; padding: 48px 20px; color: var(--text-faint);
+    border: 1px dashed var(--border); border-radius: 12px; font-size: 14px;
+  }
+
+  .cred-row {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; display: grid; grid-template-columns: 1.2fr 1.2fr 1.4fr auto; gap: 14px; align-items: center;
+  }
+  .cred-field { display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+  .cred-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); }
+  .cred-value { font-family: var(--font-mono); font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cred-value.website { font-family: var(--font-body); font-weight: 600; }
+
+  .pw-row { display: flex; align-items: center; gap: 8px; }
+  .toggle-pw {
+    background: none; border: none; color: var(--text-faint); cursor: pointer; padding: 2px; line-height: 0; flex-shrink: 0;
+  }
+  .toggle-pw:hover { color: var(--text-muted); }
+
+  .row-actions { display: flex; gap: 6px; }
+  .icon-btn {
+    background: var(--surface-raised); border: 1px solid var(--border); border-radius: 7px;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text-muted);
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .icon-btn.delete-btn:hover { border-color: var(--error); color: var(--error); }
+
+  @media (max-width: 720px) {
+    .add-form { grid-template-columns: 1fr; }
+    .cred-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand-mark"><span class="dot"></span>VAULTKEEP</div>
+  <div class="user-info">
+    <span id="userGreeting">Loading…</span>
+    <button class="logout-btn" id="logoutBtn">Log out</button>
+  </div>
+</header>
+
+<main>
+  <h1 class="page-title">Your vault</h1>
+  <p class="page-subtitle">Every saved credential, encrypted at rest.</p>
+
+  <div class="add-card">
+    <h3>Add a new credential</h3>
+    <form id="addForm" class="add-form">
+      <div class="field">
+        <label for="websiteName">Website</label>
+        <input type="text" id="websiteName" placeholder="Gmail" required>
+      </div>
+      <div class="field">
+        <label for="username">Username / Email</label>
+        <input type="text" id="username" placeholder="you@gmail.com">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="text" id="password" placeholder="Password to save" required>
+      </div>
+      <button type="submit" class="save-btn" id="addBtn">Save</button>
+    </form>
+    <div class="form-error" id="addError"></div>
+  </div>
+
+  <div class="vault-list" id="vaultList">
+    <div class="empty-state">Loading your vault…</div>
+  </div>
+</main>
+
+<script>
+  const API_BASE = 'http://localhost:8081';
+  const token = localStorage.getItem('vaultkeep_token');
+  if (!token) {
+    window.location.href = 'Login.html';
+    throw new Error('Not logged in - redirecting.');
+  }
+
+  // ---- Who's logged in? ----
+  const storedUser = localStorage.getItem('vaultkeep_user');
+  if (!storedUser) {
+    // Not logged in - send back to the login page and stop running this script
+    window.location.href = 'Login.html';
+    throw new Error('Not logged in - redirecting.');
+  }
+  const currentUser = JSON.parse(storedUser);
+  document.getElementById('userGreeting').textContent = currentUser.name + ' (' + currentUser.email + ')';
+
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem('vaultkeep_token');
+    localStorage.removeItem('vaultkeep_user');
+    window.location.href = 'Login.html';
+  });
+
+  // ---- Load and render the vault ----
+  async function loadVault() {
+    const listEl = document.getElementById('vaultList');
+    try {
+      const res = await fetch(`${API_BASE}/api/credentials`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+
+      if (!data.length) {
+        listEl.innerHTML = '<div class="empty-state">No saved credentials yet. Add your first one above.</div>';
+        return;
+      }
+
+      listEl.innerHTML = '';
+      data.forEach(cred => listEl.appendChild(renderCredentialRow(cred)));
+    } catch (err) {
+      listEl.innerHTML = '<div class="empty-state">Could not load your vault. Is the server running?</div>';
+    }
+  }
+
+  function renderCredentialRow(cred) {
+    const row = document.createElement('div');
+    row.className = 'cred-row';
+    row.innerHTML = `
+      <div class="cred-field">
+        <span class="cred-label">Website</span>
+        <span class="cred-value website">${escapeHtml(cred.websiteName)}</span>
+      </div>
+      <div class="cred-field">
+        <span class="cred-label">Username</span>
+        <span class="cred-value">${escapeHtml(cred.username || '—')}</span>
+      </div>
+      <div class="cred-field">
+        <span class="cred-label">Password</span>
+        <div class="pw-row">
+          <span class="cred-value pw-text" data-real="${escapeHtml(cred.password)}">••••••••</span>
+          <button type="button" class="toggle-pw" aria-label="Show password">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="row-actions">
+        <button type="button" class="icon-btn edit-btn" aria-label="Edit">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </button>
+        <button type="button" class="icon-btn delete-btn" aria-label="Delete">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+        </button>
+      </div>
+    `;
+
+    // Show/hide password
+    const pwText = row.querySelector('.pw-text');
+    const toggleBtn = row.querySelector('.toggle-pw');
+    toggleBtn.addEventListener('click', () => {
+      const isHidden = pwText.textContent === '••••••••';
+      pwText.textContent = isHidden ? pwText.dataset.real : '••••••••';
+    });
+
+    // Delete
+    row.querySelector('.delete-btn').addEventListener('click', async () => {
+      if (!confirm(`Delete the saved credential for "${cred.websiteName}"?`)) return;
+      await fetch(`${API_BASE}/api/credentials/${cred.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      loadVault();
+    });
+
+    // Edit - simple inline prompt-based edit to keep this straightforward
+    row.querySelector('.edit-btn').addEventListener('click', async () => {
+      const newWebsite = prompt('Website name:', cred.websiteName);
+      if (newWebsite === null) return;
+      const newUsername = prompt('Username / email:', cred.username);
+      if (newUsername === null) return;
+      const newPassword = prompt('Password:', cred.password);
+      if (newPassword === null) return;
+
+      await fetch(`${API_BASE}/api/credentials/${cred.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          websiteName: newWebsite,
+          username: newUsername,
+          password: newPassword
+        })
+      });
+      loadVault();
+    });
+
+    return row;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ---- Add new credential ----
+  document.getElementById('addForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const websiteName = document.getElementById('websiteName').value.trim();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const errorEl = document.getElementById('addError');
+    const btn = document.getElementById('addBtn');
+
+    errorEl.textContent = '';
+    if (!websiteName || !password) {
+      errorEl.textContent = 'Website name and password are required.';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/credentials`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ websiteName, username, password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Could not save credential.');
+
+      document.getElementById('addForm').reset();
+      loadVault();
+    } catch (err) {
+      errorEl.textContent = err.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save';
+    }
+  });
+
+  // ---- Initial load ----
+  loadVault();
+</script>
+
+</body>
+</html>
