@@ -33,3 +33,4 @@ build/
 .vscode/
 ### Secrets ###
 application.properties
+frontend/node_modules/
