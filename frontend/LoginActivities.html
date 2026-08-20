@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Vaultkeep — Login Activities</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #f7f8fa; margin: 0; padding: 30px; }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: #666; margin-bottom: 24px; }
+  .stats { display: flex; gap: 16px; margin-bottom: 24px; }
+  .stat-card { flex: 1; background: white; border-radius: 10px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .stat-label { color: #666; font-size: 13px; }
+  .stat-value { font-size: 28px; font-weight: 700; margin-top: 6px; }
+  .success-value { color: #16a34a; }
+  .failed-value { color: #dc2626; }
+  table { width: 100%; background: white; border-radius: 10px; overflow: hidden; border-collapse: collapse; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  th, td { text-align: left; padding: 12px 16px; font-size: 14px; }
+  th { background: #fafafa; color: #666; font-weight: 600; border-bottom: 1px solid #eee; }
+  td { border-bottom: 1px solid #f0f0f0; }
+  .badge { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .badge-success { background: #dcfce7; color: #16a34a; }
+  .badge-failed { background: #fee2e2; color: #dc2626; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔒 Login Activities</h1>
+  <p class="subtitle">Monitor and review your account login activity</p>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Total Attempts</div>
+      <div class="stat-value" id="totalAttempts">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Successful Logins</div>
+      <div class="stat-value success-value" id="successCount">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Failed Attempts</div>
+      <div class="stat-value failed-value" id="failedCount">-</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>#</th><th>Email</th><th>Status</th><th>Date & Time</th></tr>
+    </thead>
+    <tbody id="logRows">
+      <tr><td colspan="4">Loading...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+const token = localStorage.getItem('vaultkeep_token'); // adjust this key if your app stores it differently
+
+fetch('http://localhost:8081/api/login-logs/me', {
+  headers: { 'Authorization': 'Bearer ' + token }
+})
+.then(res => res.json())
+.then(logs => {
+  const total = logs.length;
+  const successCount = logs.filter(l => l.success).length;
+  const failedCount = total - successCount;
+
+  document.getElementById('totalAttempts').textContent = total;
+  document.getElementById('successCount').textContent = successCount;
+  document.getElementById('failedCount').textContent = failedCount;
+
+  const rows = logs.map((log, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${log.email}</td>
+      <td><span class="badge ${log.success ? 'badge-success' : 'badge-failed'}">${log.success ? '✓ SUCCESS' : '✗ FAILED'}</span></td>
+      <td>${new Date(log.attemptedAt).toLocaleString()}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('logRows').innerHTML = rows || '<tr><td colspan="4">No login activity yet.</td></tr>';
+})
+.catch(err => {
+  document.getElementById('logRows').innerHTML = '<tr><td colspan="4">Failed to load login activity.</td></tr>';
+  console.error(err);
+});
+</script>
+</body>
+</html>

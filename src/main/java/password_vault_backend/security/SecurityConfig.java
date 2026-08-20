@@ -33,6 +33,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Anyone can register/login without already having a token
                 .requestMatchers("/api/auth/**").permitAll()
+                // Password generator/strength checker don't need login either
+                .requestMatchers("/api/password-tools/**").permitAll()
                 // Everything else requires a valid JWT
                 .anyRequest().authenticated()
             )

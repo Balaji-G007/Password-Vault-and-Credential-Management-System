@@ -1,6 +1,8 @@
 package password_vault_backend.controller;
 
+import password_vault_backend.model.LoginLog;
 import password_vault_backend.model.User;
+import password_vault_backend.repository.LoginLogRepository;
 import password_vault_backend.repository.UserRepository;
 import password_vault_backend.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +11,8 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Map;
 import java.util.Random;
@@ -21,6 +25,7 @@ public class AuthController {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private JavaMailSender mailSender;
     @Autowired private JwtUtil jwtUtil;
+    @Autowired private LoginLogRepository loginLogRepository;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
@@ -38,11 +43,23 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        String ip = httpRequest.getRemoteAddr();
         User user = userRepository.findByEmail(request.getEmail());
-        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+
+        if (user == null) {
+            loginLogRepository.save(new LoginLog(request.getEmail(), false, ip, "User not found"));
             return ResponseEntity.status(401).body(Map.of("message", "Invalid email or password."));
         }
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            loginLogRepository.save(new LoginLog(request.getEmail(), false, ip, "Invalid password"));
+            return ResponseEntity.status(401).body(Map.of("message", "Invalid email or password."));
+        }
+
+        // Successful login
+        loginLogRepository.save(new LoginLog(request.getEmail(), true, ip, null));
+
         String token = jwtUtil.generateToken(user.getEmail());
         return ResponseEntity.ok(Map.of("token", token, "name", user.getName(), "email", user.getEmail()));
     }

@@ -123,6 +123,16 @@
     .add-form { grid-template-columns: 1fr; }
     .cred-row { grid-template-columns: 1fr; }
   }
+  .dropdown { position: relative; display: inline-block; }
+.dropdown-toggle { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 7px 14px; border-radius: 7px; cursor: pointer; font: inherit; font-size: 13px; }
+.dropdown-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.dropdown-menu {
+  position: absolute; background: var(--surface-raised); border: 1px solid var(--border);
+  border-radius: 7px; min-width: 160px; z-index: 100; top: 110%; right: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.dropdown-menu a { display: block; padding: 10px 14px; color: var(--text); text-decoration: none; font-size: 13.5px; }
+.dropdown-menu a:hover { background: var(--surface); color: var(--accent); }
 </style>
 </head>
 <body>
@@ -132,6 +142,12 @@
   <div class="user-info">
     <span id="userGreeting">Loading…</span>
     <a href="Profile.html" style="color: var(--text-muted); text-decoration: none;">Profile</a>
+    <div class="dropdown">
+      <button class="dropdown-toggle" onclick="toggleSecurityMenu()">Security ▾</button>
+      <div id="securityMenu" class="dropdown-menu" style="display:none;">
+        <a href="LoginActivities.html">Login Activities</a>
+      </div>
+    </div>
     <button class="logout-btn" id="logoutBtn">Log out</button>
   </div>
 </header>
@@ -367,6 +383,11 @@
 
   // ---- Initial load ----
   loadVault();
+  function toggleSecurityMenu() {
+  const menu = document.getElementById('securityMenu');
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+  
 </script>
 
 </body>
