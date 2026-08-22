@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vaultkeep — Security Alerts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0E1220; --surface: #161B2C; --surface-raised: #1C2238;
+    --border: #2A3149; --border-soft: #232A40; --text: #E9E7E0;
+    --text-muted: #8B92A8; --text-faint: #545C74; --accent: #C9A66B;
+    --teal: #4FD1C5; --error: #E2685B; --warn: #F5A623;
+    --font-display: 'Sora', sans-serif; --font-body: 'Inter', sans-serif; --font-mono: 'IBM Plex Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 20px 32px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .brand-mark { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 18px; }
+  .brand-mark .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  .back-link { color: var(--text-muted); text-decoration: none; font-size: 13.5px; border: 1px solid var(--border); padding: 7px 14px; border-radius: 7px; }
+  .back-link:hover { border-color: var(--accent); color: var(--accent); }
+  main { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+  .page-title { font-family: var(--font-display); font-size: 24px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+  .page-subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 28px; }
+  .alert-card {
+    background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--error);
+    border-radius: 10px; padding: 16px 18px; margin-bottom: 12px;
+  }
+  .alert-card.severity-medium { border-left-color: var(--warn); }
+  .alert-card.severity-low { border-left-color: var(--teal); }
+  .alert-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .alert-type { font-weight: 600; font-size: 14.5px; }
+  .severity-badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 10px; text-transform: uppercase; }
+  .severity-HIGH { background: rgba(226,104,91,0.15); color: var(--error); }
+  .severity-MEDIUM { background: rgba(245,166,35,0.15); color: var(--warn); }
+  .severity-LOW { background: rgba(79,209,197,0.15); color: var(--teal); }
+  .alert-message { color: var(--text-muted); font-size: 13.5px; margin-bottom: 8px; }
+  .alert-meta { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); }
+  .status-badge { font-size: 10.5px; padding: 2px 8px; border-radius: 8px; background: var(--surface-raised); color: var(--text-muted); }
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--text-faint); border: 1px dashed var(--border); border-radius: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand-mark"><span class="dot"></span>VAULTKEEP</div>
+  <a href="Dashboard.html" class="back-link">← Dashboard</a>
+</header>
+<main>
+  <h1 class="page-title">⚠️ Security Alerts</h1>
+  <p class="page-subtitle">Alerts generated from detected suspicious activity on your account</p>
+  <div id="alertsList"><div class="empty-state">Loading…</div></div>
+</main>
+<script>
+const token = localStorage.getItem('vaultkeep_token');
+if (!token) window.location.href = 'Login.html';
+
+fetch('http://localhost:8081/api/security-alerts/me', { headers: { 'Authorization': 'Bearer ' + token } })
+.then(res => res.json())
+.then(alerts => {
+  const list = document.getElementById('alertsList');
+  if (!alerts.length) { list.innerHTML = '<div class="empty-state">No security alerts. Your account looks healthy.</div>'; return; }
+  list.innerHTML = alerts.map(a => `
+    <div class="alert-card severity-${a.severity.toLowerCase()}">
+      <div class="alert-top">
+        <span class="alert-type">${a.alertType.replaceAll('_',' ')}</span>
+        <span class="severity-badge severity-${a.severity}">${a.severity}</span>
+      </div>
+      <div class="alert-message">${a.message}</div>
+      <div class="alert-meta">
+        <span>${new Date(a.createdAt).toLocaleString()}</span>
+        <span class="status-badge">${a.status}</span>
+      </div>
+    </div>
+  `).join('');
+})
+.catch(() => document.getElementById('alertsList').innerHTML = '<div class="empty-state">Failed to load alerts.</div>');
+</script>
+</body>
+</html>

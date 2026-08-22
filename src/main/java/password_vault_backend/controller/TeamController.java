@@ -3,6 +3,7 @@ package password_vault_backend.controller;
 import password_vault_backend.model.*;
 import password_vault_backend.repository.*;
 import password_vault_backend.security.EncryptionUtil;
+import password_vault_backend.Service.AuditLogService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,7 @@ public class TeamController {
     @Autowired private CredentialRepository credentialRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private EncryptionUtil encryptionUtil;
+    @Autowired private AuditLogService auditLogService;
 
     private Long getCurrentUserId() {
         String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -31,21 +33,21 @@ public class TeamController {
         return user.getId();
     }
 
-    // Checks whether the current user has at least the given role in a team.
-    // OWNER outranks ADMIN outranks MEMBER.
+    private String getCurrentUserEmail() {
+        return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
     private boolean hasRole(Long teamId, Long userId, TeamMember.Role minimumRole) {
         TeamMember member = teamMemberRepository.findByTeamIdAndUserId(teamId, userId).orElse(null);
         if (member == null) return false;
 
         return switch (minimumRole) {
-            case MEMBER -> true; // any role qualifies
+            case MEMBER -> true;
             case ADMIN -> member.getRole() == TeamMember.Role.ADMIN || member.getRole() == TeamMember.Role.OWNER;
             case OWNER -> member.getRole() == TeamMember.Role.OWNER;
         };
     }
 
-    // POST /api/teams - create a new team. Creator automatically becomes OWNER.
-    // body: { "name": "Engineering Team" }
     @PostMapping
     public ResponseEntity<?> createTeam(@RequestBody Map<String, String> body) {
         String name = body.get("name");
@@ -57,10 +59,11 @@ public class TeamController {
         Team team = teamRepository.save(new Team(name, userId));
         teamMemberRepository.save(new TeamMember(team.getId(), userId, TeamMember.Role.OWNER));
 
+        auditLogService.log(getCurrentUserEmail(), "TEAM_CREATED", "Created team: " + name);
+
         return ResponseEntity.ok(Map.of("message", "Team created.", "teamId", team.getId()));
     }
 
-    // GET /api/teams - list teams the current user belongs to
     @GetMapping
     public ResponseEntity<?> myTeams() {
         Long userId = getCurrentUserId();
@@ -78,8 +81,6 @@ public class TeamController {
         return ResponseEntity.ok(response);
     }
 
-    // POST /api/teams/{teamId}/members - add a member. Requires ADMIN or OWNER.
-    // body: { "email": "person@example.com", "role": "MEMBER" }  (role: MEMBER or ADMIN)
     @PostMapping("/{teamId}/members")
     public ResponseEntity<?> addMember(@PathVariable Long teamId, @RequestBody Map<String, String> body) {
         Long userId = getCurrentUserId();
@@ -101,10 +102,12 @@ public class TeamController {
         TeamMember.Role role = roleStr.equalsIgnoreCase("ADMIN") ? TeamMember.Role.ADMIN : TeamMember.Role.MEMBER;
 
         teamMemberRepository.save(new TeamMember(teamId, newUser.getId(), role));
+
+        auditLogService.log(getCurrentUserEmail(), "TEAM_MEMBER_ADDED", "Added " + email + " to team " + teamId);
+
         return ResponseEntity.ok(Map.of("message", "Member added."));
     }
 
-    // DELETE /api/teams/{teamId}/members/{memberUserId} - remove a member. Requires ADMIN or OWNER.
     @DeleteMapping("/{teamId}/members/{memberUserId}")
     public ResponseEntity<?> removeMember(@PathVariable Long teamId, @PathVariable Long memberUserId) {
         Long userId = getCurrentUserId();
@@ -121,11 +124,12 @@ public class TeamController {
         }
 
         teamMemberRepository.delete(target);
+
+        auditLogService.log(getCurrentUserEmail(), "TEAM_MEMBER_REMOVED", "Removed user " + memberUserId + " from team " + teamId);
+
         return ResponseEntity.ok(Map.of("message", "Member removed."));
     }
 
-    // POST /api/teams/{teamId}/credentials - share one of my credentials with the whole team. Requires ADMIN or OWNER.
-    // body: { "credentialId": 8 }
     @PostMapping("/{teamId}/credentials")
     public ResponseEntity<?> shareToTeam(@PathVariable Long teamId, @RequestBody Map<String, Long> body) {
         Long userId = getCurrentUserId();
@@ -140,10 +144,13 @@ public class TeamController {
         }
 
         teamCredentialRepository.save(new TeamCredential(teamId, credentialId, userId));
+
+        auditLogService.log(getCurrentUserEmail(), "TEAM_CREDENTIAL_SHARED",
+                "Shared " + credential.getWebsiteName() + " with team " + teamId);
+
         return ResponseEntity.ok(Map.of("message", "Credential shared with team."));
     }
 
-    // GET /api/teams/{teamId}/credentials - view all credentials shared with this team. Requires being a member.
     @GetMapping("/{teamId}/credentials")
     public ResponseEntity<?> teamCredentials(@PathVariable Long teamId) {
         Long userId = getCurrentUserId();

@@ -5,6 +5,7 @@ import password_vault_backend.model.User;
 import password_vault_backend.repository.CredentialRepository;
 import password_vault_backend.repository.UserRepository;
 import password_vault_backend.security.EncryptionUtil;
+import password_vault_backend.Service.AuditLogService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -22,14 +23,16 @@ public class CredentialController {
     @Autowired private CredentialRepository credentialRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private EncryptionUtil encryptionUtil;
+    @Autowired private AuditLogService auditLogService;
 
-    // The JWT filter puts the logged-in user's email into the security context.
-    // We look up their numeric ID from that email so every query below can be
-    // scoped to "only this user's data".
     private Long getCurrentUserId() {
         String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         User user = userRepository.findByEmail(email);
         return user.getId();
+    }
+
+    private String getCurrentUserEmail() {
+        return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 
     // GET /api/credentials - list all of the logged-in user's saved credentials
@@ -38,7 +41,6 @@ public class CredentialController {
         Long userId = getCurrentUserId();
         List<Credential> credentials = credentialRepository.findByUserId(userId);
 
-        // Decrypt each password before sending it back
         List<Map<String, Object>> response = credentials.stream().map(c -> {
             Map<String, Object> item = new java.util.HashMap<>();
             item.put("id", c.getId());
@@ -52,7 +54,6 @@ public class CredentialController {
     }
 
     // POST /api/credentials - save a new website credential
-    // body: { "websiteName": "...", "username": "...", "password": "..." }
     @PostMapping
     public ResponseEntity<?> create(@RequestBody CredentialRequest request) {
         if (request.getWebsiteName() == null || request.getWebsiteName().isBlank()
@@ -65,6 +66,8 @@ public class CredentialController {
 
         Credential credential = new Credential(request.getWebsiteName(), request.getUsername(), encrypted, userId);
         credentialRepository.save(credential);
+
+        auditLogService.log(getCurrentUserEmail(), "CREDENTIAL_CREATED", "Added credential for " + request.getWebsiteName());
 
         return ResponseEntity.ok(Map.of("message", "Credential saved."));
     }
@@ -86,6 +89,8 @@ public class CredentialController {
         credential.setEncryptedPassword(encryptionUtil.encrypt(request.getPassword()));
         credentialRepository.save(credential);
 
+        auditLogService.log(getCurrentUserEmail(), "CREDENTIAL_UPDATED", "Updated credential for " + request.getWebsiteName());
+
         return ResponseEntity.ok(Map.of("message", "Credential updated."));
     }
 
@@ -102,10 +107,12 @@ public class CredentialController {
         }
 
         credentialRepository.delete(credential);
+
+        auditLogService.log(getCurrentUserEmail(), "CREDENTIAL_DELETED", "Deleted credential for " + credential.getWebsiteName());
+
         return ResponseEntity.ok(Map.of("message", "Credential deleted."));
     }
 
-    // Simple request body shape for create/update
     public static class CredentialRequest {
         private String websiteName;
         private String username;

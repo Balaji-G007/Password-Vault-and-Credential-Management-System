@@ -11,6 +11,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import password_vault_backend.Service.SuspiciousActivityService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -26,6 +27,7 @@ public class AuthController {
     @Autowired private JavaMailSender mailSender;
     @Autowired private JwtUtil jwtUtil;
     @Autowired private LoginLogRepository loginLogRepository;
+    @Autowired private SuspiciousActivityService suspiciousActivityService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
@@ -53,9 +55,10 @@ public class AuthController {
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            loginLogRepository.save(new LoginLog(request.getEmail(), false, ip, "Invalid password"));
-            return ResponseEntity.status(401).body(Map.of("message", "Invalid email or password."));
-        }
+    loginLogRepository.save(new LoginLog(request.getEmail(), false, ip, "Invalid password"));
+    suspiciousActivityService.checkAndFlag(request.getEmail());
+    return ResponseEntity.status(401).body(Map.of("message", "Invalid email or password."));
+}
 
         // Successful login
         loginLogRepository.save(new LoginLog(request.getEmail(), true, ip, null));

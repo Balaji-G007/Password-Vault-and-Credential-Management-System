@@ -7,6 +7,7 @@ import password_vault_backend.repository.CredentialRepository;
 import password_vault_backend.repository.SharedCredentialRepository;
 import password_vault_backend.repository.UserRepository;
 import password_vault_backend.security.EncryptionUtil;
+import password_vault_backend.Service.AuditLogService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,7 @@ public class SharedCredentialController {
     @Autowired private CredentialRepository credentialRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private EncryptionUtil encryptionUtil;
+    @Autowired private AuditLogService auditLogService;
 
     private String getCurrentUserEmail() {
         return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -37,21 +39,16 @@ public class SharedCredentialController {
         return user.getId();
     }
 
-    // POST /api/shared-credentials
-    // body: { "credentialId": 3, "shareWithEmail": "friend@example.com", "expiresInHours": 24 }
-    // expiresInHours is optional - omit or null for a share that never expires
     @PostMapping
     public ResponseEntity<?> share(@RequestBody ShareRequest request) {
         Long ownerId = getCurrentUserId();
 
-        // Confirm the credential exists and actually belongs to the person sharing it
         Credential credential = credentialRepository.findByIdAndUserId(request.getCredentialId(), ownerId)
                 .orElse(null);
         if (credential == null) {
             return ResponseEntity.status(404).body(Map.of("message", "Credential not found."));
         }
 
-        // Confirm the recipient is an actual registered user
         User recipient = userRepository.findByEmail(request.getShareWithEmail());
         if (recipient == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "No user found with that email."));
@@ -65,10 +62,12 @@ public class SharedCredentialController {
                 credential.getId(), ownerId, request.getShareWithEmail(), expiresAt);
         sharedCredentialRepository.save(shared);
 
+        auditLogService.log(getCurrentUserEmail(), "CREDENTIAL_SHARED",
+                "Shared " + credential.getWebsiteName() + " with " + request.getShareWithEmail());
+
         return ResponseEntity.ok(Map.of("message", "Credential shared successfully."));
     }
 
-    // GET /api/shared-credentials/received - credentials other people have shared WITH me
     @GetMapping("/received")
     public ResponseEntity<?> received() {
         String myEmail = getCurrentUserEmail();
@@ -94,7 +93,6 @@ public class SharedCredentialController {
         return ResponseEntity.ok(response);
     }
 
-    // GET /api/shared-credentials/sent - credentials I have shared out, for managing/revoking
     @GetMapping("/sent")
     public ResponseEntity<?> sent() {
         Long ownerId = getCurrentUserId();
@@ -115,7 +113,6 @@ public class SharedCredentialController {
         return ResponseEntity.ok(response);
     }
 
-    // DELETE /api/shared-credentials/{shareId} - revoke a share you created
     @DeleteMapping("/{shareId}")
     public ResponseEntity<?> revoke(@PathVariable Long shareId) {
         Long ownerId = getCurrentUserId();
@@ -127,6 +124,8 @@ public class SharedCredentialController {
 
         share.setRevoked(true);
         sharedCredentialRepository.save(share);
+
+        auditLogService.log(getCurrentUserEmail(), "SHARE_REVOKED", "Revoked share ID " + shareId);
 
         return ResponseEntity.ok(Map.of("message", "Access revoked."));
     }
