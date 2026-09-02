@@ -15,14 +15,14 @@ public class SuspiciousActivity {
     private String userEmail;
 
     @Column(name = "activity_type")
-    private String activityType; // e.g. "MULTIPLE_FAILED_LOGINS"
+    private String activityType;
 
     private String description;
 
     @Column(name = "detected_at")
     private LocalDateTime detectedAt;
 
-    private String status; // "NEW", "REVIEWED", "RESOLVED"
+    private String status;
 
     public SuspiciousActivity() {}
 
@@ -38,7 +38,9 @@ public class SuspiciousActivity {
     public String getUserEmail() { return userEmail; }
     public String getActivityType() { return activityType; }
     public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
     public LocalDateTime getDetectedAt() { return detectedAt; }
+    public void setDetectedAt(LocalDateTime detectedAt) { this.detectedAt = detectedAt; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 }

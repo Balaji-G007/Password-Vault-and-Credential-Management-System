@@ -37,15 +37,31 @@ public class SuspiciousActivityService {
             return;
         }
 
+        String description = recentFailures.size() + " failed login attempts within " + WINDOW_MINUTES + " minutes";
+
         List<SuspiciousActivity> existing = suspiciousActivityRepository.findByUserEmailOrderByDetectedAtDesc(email);
         boolean alreadyFlaggedRecently = !existing.isEmpty()
                 && existing.get(0).getDetectedAt().isAfter(windowStart);
 
         if (alreadyFlaggedRecently) {
+            SuspiciousActivity current = existing.get(0);
+            current.setDescription(description);
+            current.setDetectedAt(LocalDateTime.now());
+            suspiciousActivityRepository.save(current);
+
+            // Also refresh the most recent alert so it reflects the latest count
+            List<SecurityAlert> recentAlerts = securityAlertRepository.findByUserEmailOrderByCreatedAtDesc(email);
+           if (!recentAlerts.isEmpty() && recentAlerts.get(0).getUpdatedAt().isAfter(windowStart)) {
+                SecurityAlert latestAlert = recentAlerts.get(0);
+                latestAlert.setMessage("Multiple failed login attempts detected on your account (" + recentFailures.size() + " attempts).");
+                latestAlert.setUpdatedAt(LocalDateTime.now());
+                latestAlert.setStatus("UNREAD");
+                securityAlertRepository.save(latestAlert);
+            }
+
+            auditLogService.log(email, "SUSPICIOUS_ACTIVITY_UPDATED", description);
             return;
         }
-
-        String description = recentFailures.size() + " failed login attempts within " + WINDOW_MINUTES + " minutes";
 
         SuspiciousActivity activity = new SuspiciousActivity(email, "MULTIPLE_FAILED_LOGINS", description);
         suspiciousActivityRepository.save(activity);

@@ -69,7 +69,7 @@ fetch('http://localhost:8081/api/security-alerts/me', { headers: { 'Authorizatio
       </div>
       <div class="alert-message">${a.message}</div>
       <div class="alert-meta">
-        <span>${new Date(a.createdAt).toLocaleString()}</span>
+        <span>${new Date(a.updatedAt || a.createdAt).toLocaleString()}</span>
         <span class="status-badge">${a.status}</span>
       </div>
     </div>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vaultkeep — Security Reports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0E1220; --surface: #161B2C; --surface-raised: #1C2238;
+    --border: #2A3149; --border-soft: #232A40; --text: #E9E7E0;
+    --text-muted: #8B92A8; --text-faint: #545C74; --accent: #C9A66B;
+    --teal: #4FD1C5; --error: #E2685B; --warn: #F5A623;
+    --font-display: 'Sora', sans-serif; --font-body: 'Inter', sans-serif; --font-mono: 'IBM Plex Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 20px 32px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .brand-mark { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 18px; }
+  .brand-mark .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  .back-link { color: var(--text-muted); text-decoration: none; font-size: 13.5px; border: 1px solid var(--border); padding: 7px 14px; border-radius: 7px; }
+  .back-link:hover { border-color: var(--accent); color: var(--accent); }
+  main { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+  .page-title { font-family: var(--font-display); font-size: 24px; font-weight: 600; margin-bottom: 28px; }
+
+  .report-section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+  .report-section h2 { font-family: var(--font-display); font-size: 17px; margin-bottom: 18px; }
+
+  .health-bar { display: flex; height: 10px; border-radius: 6px; overflow: hidden; margin-bottom: 18px; background: var(--surface-raised); }
+  .health-bar div { height: 100%; }
+  .bar-strong { background: var(--teal); }
+  .bar-medium { background: var(--warn); }
+  .bar-weak { background: var(--error); }
+
+  .stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .stat-box { text-align: center; padding: 12px; background: var(--surface-raised); border-radius: 8px; }
+  .stat-box .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+  .stat-box .value { font-family: var(--font-display); font-size: 22px; font-weight: 700; margin-top: 4px; }
+  .c-strong { color: var(--teal); }
+  .c-medium { color: var(--warn); }
+  .c-weak { color: var(--error); }
+  .c-score { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand-mark"><span class="dot"></span>VAULTKEEP</div>
+  <a href="Dashboard.html" class="back-link">← Dashboard</a>
+</header>
+<main>
+  <h1 class="page-title">📈 Security Reports</h1>
+
+  <div class="report-section">
+    <h2>Password Health</h2>
+    <div class="health-bar" id="healthBar"></div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="label">Total</div><div class="value" id="phTotal">-</div></div>
+      <div class="stat-box"><div class="label">Strong</div><div class="value c-strong" id="phStrong">-</div></div>
+      <div class="stat-box"><div class="label">Medium</div><div class="value c-medium" id="phMedium">-</div></div>
+      <div class="stat-box"><div class="label">Weak</div><div class="value c-weak" id="phWeak">-</div></div>
+    </div>
+    <div class="stat-row" style="margin-top:12px;">
+      <div class="stat-box" style="grid-column: span 4;"><div class="label">Health Score</div><div class="value c-score" id="phScore">-</div></div>
+    </div>
+  </div>
+
+  <div class="report-section">
+    <h2>Login Activity</h2>
+    <div class="stat-row">
+      <div class="stat-box" style="grid-column: span 2;"><div class="label">Total Attempts</div><div class="value" id="laTotal">-</div></div>
+      <div class="stat-box" style="grid-column: span 1;"><div class="label">Successful</div><div class="value c-strong" id="laSuccess">-</div></div>
+      <div class="stat-box" style="grid-column: span 1;"><div class="label">Failed</div><div class="value c-weak" id="laFailed">-</div></div>
+    </div>
+  </div>
+</main>
+<script>
+const token = localStorage.getItem('vaultkeep_token');
+if (!token) window.location.href = 'Login.html';
+const headers = { 'Authorization': 'Bearer ' + token };
+
+fetch('http://localhost:8081/api/reports/password-health', { headers })
+.then(res => res.json())
+.then(d => {
+  document.getElementById('phTotal').textContent = d.totalCredentials;
+  document.getElementById('phStrong').textContent = d.strong;
+  document.getElementById('phMedium').textContent = d.medium;
+  document.getElementById('phWeak').textContent = d.weak;
+  document.getElementById('phScore').textContent = d.healthScore + '%';
+
+  const total = d.totalCredentials || 1;
+  const bar = document.getElementById('healthBar');
+  bar.innerHTML = `
+    <div class="bar-strong" style="width:${(d.strong/total)*100}%"></div>
+    <div class="bar-medium" style="width:${(d.medium/total)*100}%"></div>
+    <div class="bar-weak" style="width:${(d.weak/total)*100}%"></div>
+  `;
+})
+.catch(err => console.error('Password health load failed', err));
+
+fetch('http://localhost:8081/api/reports/login-activity', { headers })
+.then(res => res.json())
+.then(d => {
+  document.getElementById('laTotal').textContent = d.totalAttempts;
+  document.getElementById('laSuccess').textContent = d.successfulLogins;
+  document.getElementById('laFailed').textContent = d.failedLogins;
+})
+.catch(err => console.error('Login activity load failed', err));
+</script>
+</body>
+</html>

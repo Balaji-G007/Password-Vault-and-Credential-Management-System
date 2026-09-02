@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vaultkeep — Security Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0E1220; --surface: #161B2C; --surface-raised: #1C2238;
+    --border: #2A3149; --border-soft: #232A40; --text: #E9E7E0;
+    --text-muted: #8B92A8; --text-faint: #545C74; --accent: #C9A66B;
+    --teal: #4FD1C5; --error: #E2685B; --warn: #F5A623;
+    --font-display: 'Sora', sans-serif; --font-body: 'Inter', sans-serif; --font-mono: 'IBM Plex Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 20px 32px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .brand-mark { display: flex; align-items: center; gap: 10px; font-family: var(--font-display); font-weight: 700; font-size: 18px; }
+  .brand-mark .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  .back-link { color: var(--text-muted); text-decoration: none; font-size: 13.5px; border: 1px solid var(--border); padding: 7px 14px; border-radius: 7px; }
+  .back-link:hover { border-color: var(--accent); color: var(--accent); }
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+  .page-title { font-family: var(--font-display); font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+  .page-subtitle { color: var(--text-muted); font-size: 14px; margin-bottom: 28px; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 32px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .stat-label { color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-value { font-family: var(--font-display); font-size: 26px; font-weight: 700; margin-top: 6px; }
+  .v-success { color: var(--teal); }
+  .v-fail { color: var(--error); }
+  .v-warn { color: var(--warn); }
+
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+  .panel h3 { font-family: var(--font-display); font-size: 15px; margin-bottom: 12px; }
+  .panel-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-soft); font-size: 13px; font-family: var(--font-mono); }
+  .panel-row:last-child { border-bottom: none; }
+  .badge { font-size: 10.5px; padding: 2px 8px; border-radius: 8px; font-family: var(--font-body); font-weight: 600; }
+  .badge-success { background: rgba(79,209,197,0.12); color: var(--teal); }
+  .badge-fail { background: rgba(226,104,91,0.12); color: var(--error); }
+  .badge-high { background: rgba(226,104,91,0.15); color: var(--error); }
+  .empty { color: var(--text-faint); font-size: 13px; padding: 8px 0; }
+
+  @media (max-width: 900px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .panels { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand-mark"><span class="dot"></span>VAULTKEEP</div>
+  <a href="Dashboard.html" class="back-link">← Dashboard</a>
+</header>
+<main>
+  <h1 class="page-title">📊 Security Analytics Dashboard</h1>
+  <p class="page-subtitle">A complete overview of your account's security activity</p>
+
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card"><div class="stat-label">Total Logins</div><div class="stat-value" id="statTotal">-</div></div>
+    <div class="stat-card"><div class="stat-label">Successful</div><div class="stat-value v-success" id="statSuccess">-</div></div>
+    <div class="stat-card"><div class="stat-label">Failed</div><div class="stat-value v-fail" id="statFailed">-</div></div>
+    <div class="stat-card"><div class="stat-label">Suspicious</div><div class="stat-value v-warn" id="statSuspicious">-</div></div>
+    <div class="stat-card"><div class="stat-label">Unread Alerts</div><div class="stat-value v-fail" id="statAlerts">-</div></div>
+  </div>
+
+  <div class="panels">
+    <div class="panel">
+      <h3>Recent Logins</h3>
+      <div id="loginsPanel"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="panel">
+      <h3>Suspicious Activity</h3>
+      <div id="suspiciousPanel"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="panel">
+      <h3>Security Alerts</h3>
+      <div id="alertsPanel"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="panel">
+      <h3>Recent Audit Activity</h3>
+      <div id="auditPanel"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+</main>
+<script>
+const token = localStorage.getItem('vaultkeep_token');
+if (!token) window.location.href = 'Login.html';
+
+fetch('http://localhost:8081/api/security-dashboard/summary', { headers: { 'Authorization': 'Bearer ' + token } })
+.then(res => res.json())
+.then(data => {
+  const s = data.stats;
+  document.getElementById('statTotal').textContent = s.totalLogins;
+  document.getElementById('statSuccess').textContent = s.successfulLogins;
+  document.getElementById('statFailed').textContent = s.failedLogins;
+  document.getElementById('statSuspicious').textContent = s.suspiciousActivityCount;
+  document.getElementById('statAlerts').textContent = s.unreadAlertCount;
+
+  const loginsPanel = document.getElementById('loginsPanel');
+  loginsPanel.innerHTML = data.recentLogins.length ? data.recentLogins.map(l => `
+    <div class="panel-row">
+      <span>${new Date(l.attemptedAt).toLocaleString()}</span>
+      <span class="badge ${l.success ? 'badge-success' : 'badge-fail'}">${l.success ? 'SUCCESS' : 'FAILED'}</span>
+    </div>
+  `).join('') : '<div class="empty">No login activity yet.</div>';
+
+  const suspiciousPanel = document.getElementById('suspiciousPanel');
+  suspiciousPanel.innerHTML = data.recentSuspiciousActivity.length ? data.recentSuspiciousActivity.map(a => `
+    <div class="panel-row"><span>${a.description}</span><span class="badge badge-high">${a.status}</span></div>
+  `).join('') : '<div class="empty">No suspicious activity detected.</div>';
+
+  const alertsPanel = document.getElementById('alertsPanel');
+  alertsPanel.innerHTML = data.recentAlerts.length ? data.recentAlerts.map(a => `
+    <div class="panel-row"><span>${a.alertType.replaceAll('_',' ')}</span><span class="badge badge-high">${a.severity}</span></div>
+  `).join('') : '<div class="empty">No alerts.</div>';
+
+  const auditPanel = document.getElementById('auditPanel');
+  auditPanel.innerHTML = data.recentAuditLogs.length ? data.recentAuditLogs.map(a => `
+    <div class="panel-row"><span>${a.action.replaceAll('_',' ')}</span><span>${new Date(a.createdAt).toLocaleTimeString()}</span></div>
+  `).join('') : '<div class="empty">No audit history yet.</div>';
+})
+.catch(err => console.error('Dashboard load failed', err));
+</script>
+</body>
+</html>

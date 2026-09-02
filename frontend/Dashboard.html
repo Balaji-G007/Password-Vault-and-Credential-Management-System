@@ -124,15 +124,15 @@
     .cred-row { grid-template-columns: 1fr; }
   }
   .dropdown { position: relative; display: inline-block; }
-.dropdown-toggle { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 7px 14px; border-radius: 7px; cursor: pointer; font: inherit; font-size: 13px; }
-.dropdown-toggle:hover { border-color: var(--accent); color: var(--accent); }
-.dropdown-menu {
-  position: absolute; background: var(--surface-raised); border: 1px solid var(--border);
-  border-radius: 7px; min-width: 160px; z-index: 100; top: 110%; right: 0;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-.dropdown-menu a { display: block; padding: 10px 14px; color: var(--text); text-decoration: none; font-size: 13.5px; }
-.dropdown-menu a:hover { background: var(--surface); color: var(--accent); }
+  .dropdown-toggle { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 7px 14px; border-radius: 7px; cursor: pointer; font: inherit; font-size: 13px; }
+  .dropdown-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .dropdown-menu {
+    position: absolute; background: var(--surface-raised); border: 1px solid var(--border);
+    border-radius: 7px; min-width: 180px; z-index: 100; top: 110%; right: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .dropdown-menu a { display: block; padding: 10px 14px; color: var(--text); text-decoration: none; font-size: 13.5px; }
+  .dropdown-menu a:hover { background: var(--surface); color: var(--accent); }
 </style>
 </head>
 <body>
@@ -145,11 +145,13 @@
     <div class="dropdown">
       <button class="dropdown-toggle" onclick="toggleSecurityMenu()">Security ▾</button>
       <div id="securityMenu" class="dropdown-menu" style="display:none;">
-  <a href="LoginActivities.html">Login Activities</a>
-  <a href="SecurityAlerts.html">Security Alerts</a>
-  <a href="SuspiciousActivity.html">Suspicious Activity</a>
-  <a href="AuditLogs.html">Audit Logs</a>
-</div>
+        <a href="LoginActivities.html">Login Activities</a>
+        <a href="SecurityAlerts.html">Security Alerts</a>
+        <a href="SuspiciousActivity.html">Suspicious Activity</a>
+        <a href="AuditLogs.html">Audit Logs</a>
+        <a href="SecurityDashboard.html">Security Dashboard</a>
+        <a href="Reports.html">Reports</a>
+      </div>
     </div>
     <button class="logout-btn" id="logoutBtn">Log out</button>
   </div>
@@ -197,7 +199,6 @@
     throw new Error('Not logged in - redirecting.');
   }
 
-  // ---- Who's logged in? ----
   const storedUser = localStorage.getItem('vaultkeep_user');
   if (!storedUser) {
     window.location.href = 'Login.html';
@@ -212,7 +213,11 @@
     window.location.href = 'Login.html';
   });
 
-  // ---- Load and render the vault ----
+  function toggleSecurityMenu() {
+    const menu = document.getElementById('securityMenu');
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+  }
+
   async function loadVault() {
     const listEl = document.getElementById('vaultList');
     try {
@@ -312,7 +317,6 @@
     return div.innerHTML;
   }
 
-  // ---- Strong password generator ----
   function generateStrongPassword(length = 16) {
     const lower = 'abcdefghijklmnopqrstuvwxyz';
     const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -329,7 +333,6 @@
     let pwd = [randomChar(lower), randomChar(upper), randomChar(numbers), randomChar(symbols)];
     for (let i = pwd.length; i < length; i++) pwd.push(randomChar(all));
 
-    // Shuffle so the guaranteed characters aren't always in the same position
     for (let i = pwd.length - 1; i > 0; i--) {
       const arr = new Uint32Array(1);
       crypto.getRandomValues(arr);
@@ -344,7 +347,6 @@
     document.getElementById('password').value = generateStrongPassword(16);
   });
 
-  // ---- Add new credential ----
   document.getElementById('addForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const websiteName = document.getElementById('websiteName').value.trim();
@@ -384,13 +386,7 @@
     }
   });
 
-  // ---- Initial load ----
   loadVault();
-  function toggleSecurityMenu() {
-  const menu = document.getElementById('securityMenu');
-  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-}
-  
 </script>
 
 </body>

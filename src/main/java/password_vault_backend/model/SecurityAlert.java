@@ -15,16 +15,19 @@ public class SecurityAlert {
     private String userEmail;
 
     @Column(name = "alert_type")
-    private String alertType; // e.g. "MULTIPLE_FAILED_LOGIN_ATTEMPTS"
+    private String alertType;
 
     private String message;
 
-    private String severity; // "LOW", "MEDIUM", "HIGH"
+    private String severity;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    private String status; // "UNREAD", "READ"
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    private String status;
 
     public SecurityAlert() {}
 
@@ -34,6 +37,7 @@ public class SecurityAlert {
         this.message = message;
         this.severity = severity;
         this.createdAt = LocalDateTime.now();
+        this.updatedAt = this.createdAt;
         this.status = "UNREAD";
     }
 
@@ -41,8 +45,11 @@ public class SecurityAlert {
     public String getUserEmail() { return userEmail; }
     public String getAlertType() { return alertType; }
     public String getMessage() { return message; }
+    public void setMessage(String message) { this.message = message; }
     public String getSeverity() { return severity; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 }
