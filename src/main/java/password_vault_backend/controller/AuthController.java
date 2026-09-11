@@ -5,13 +5,15 @@ import password_vault_backend.model.User;
 import password_vault_backend.repository.LoginLogRepository;
 import password_vault_backend.repository.UserRepository;
 import password_vault_backend.security.JwtUtil;
+import password_vault_backend.Service.NotificationService;
+import password_vault_backend.Service.SuspiciousActivityService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-import password_vault_backend.Service.SuspiciousActivityService;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -28,6 +30,7 @@ public class AuthController {
     @Autowired private JwtUtil jwtUtil;
     @Autowired private LoginLogRepository loginLogRepository;
     @Autowired private SuspiciousActivityService suspiciousActivityService;
+    @Autowired private NotificationService notificationService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
@@ -47,6 +50,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         String ip = httpRequest.getRemoteAddr();
+        String userAgent = httpRequest.getHeader("User-Agent");
         User user = userRepository.findByEmail(request.getEmail());
 
         if (user == null) {
@@ -55,13 +59,18 @@ public class AuthController {
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-    loginLogRepository.save(new LoginLog(request.getEmail(), false, ip, "Invalid password"));
-    suspiciousActivityService.checkAndFlag(request.getEmail());
-    return ResponseEntity.status(401).body(Map.of("message", "Invalid email or password."));
-}
+            loginLogRepository.save(new LoginLog(request.getEmail(), false, ip, "Invalid password"));
+            // Let SuspiciousActivityService handle threshold check + FAILED_LOGIN_ALERT notification
+            suspiciousActivityService.checkAndFlag(request.getEmail(), user.getId());
+            return ResponseEntity.status(401).body(Map.of("message", "Invalid email or password."));
+        }
 
         // Successful login
         loginLogRepository.save(new LoginLog(request.getEmail(), true, ip, null));
+
+        // Trigger LOGIN_SUCCESS notification (in-app + email with timestamp/device)
+        notificationService.createLoginSuccessNotification(
+                user.getId(), user.getEmail(), userAgent, ip);
 
         String token = jwtUtil.generateToken(user.getEmail());
         return ResponseEntity.ok(Map.of("token", token, "name", user.getName(), "email", user.getEmail()));
@@ -71,7 +80,7 @@ public class AuthController {
     public ResponseEntity<?> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         User user = userRepository.findByEmail(request.getEmail());
         if (user == null) {
-            return ResponseEntity.ok(Map.of("message", "If that email exists, an OTP has been sent."));
+            return ResponseEntity.status(404).body(Map.of("message", "No account found with that email."));
         }
         String otp = String.valueOf(100000 + new Random().nextInt(900000));
         long expiry = System.currentTimeMillis() + (10 * 60 * 1000);
@@ -81,14 +90,14 @@ public class AuthController {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(user.getEmail());
-            message.setSubject("Vaultkeep - Password Reset Code");
-            message.setText("Your Vaultkeep password reset code is: " + otp
+            message.setSubject("VaultKeep - Password Reset Code");
+            message.setText("Your VaultKeep password reset code is: " + otp
                     + "\n\nThis code expires in 10 minutes. If you didn't request this, you can ignore this email.");
             mailSender.send(message);
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("message", "Could not send email. Check server email configuration."));
         }
-        return ResponseEntity.ok(Map.of("message", "If that email exists, an OTP has been sent."));
+        return ResponseEntity.ok(Map.of("message", "OTP has been sent to your email."));
     }
 
     @PostMapping("/reset-password")

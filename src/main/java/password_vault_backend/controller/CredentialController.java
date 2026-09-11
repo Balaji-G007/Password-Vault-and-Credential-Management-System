@@ -26,10 +26,10 @@ public class CredentialController {
     @Autowired private AuditLogService auditLogService;
 
     private Long getCurrentUserId() {
-        String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        User user = userRepository.findByEmail(email);
-        return user.getId();
-    }
+    String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    User user = userRepository.findByEmail(email);
+    return user.getId();
+}
 
     private String getCurrentUserEmail() {
         return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();

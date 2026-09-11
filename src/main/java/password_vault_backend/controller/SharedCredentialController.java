@@ -8,6 +8,7 @@ import password_vault_backend.repository.SharedCredentialRepository;
 import password_vault_backend.repository.UserRepository;
 import password_vault_backend.security.EncryptionUtil;
 import password_vault_backend.Service.AuditLogService;
+import password_vault_backend.Service.NotificationService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,7 @@ public class SharedCredentialController {
     @Autowired private UserRepository userRepository;
     @Autowired private EncryptionUtil encryptionUtil;
     @Autowired private AuditLogService auditLogService;
+    @Autowired private NotificationService notificationService;
 
     private String getCurrentUserEmail() {
         return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -42,6 +44,7 @@ public class SharedCredentialController {
     @PostMapping
     public ResponseEntity<?> share(@RequestBody ShareRequest request) {
         Long ownerId = getCurrentUserId();
+        User owner = userRepository.findByEmail(getCurrentUserEmail());
 
         Credential credential = credentialRepository.findByIdAndUserId(request.getCredentialId(), ownerId)
                 .orElse(null);
@@ -64,6 +67,15 @@ public class SharedCredentialController {
 
         auditLogService.log(getCurrentUserEmail(), "CREDENTIAL_SHARED",
                 "Shared " + credential.getWebsiteName() + " with " + request.getShareWithEmail());
+
+        // Trigger CREDENTIAL_SHARED notification to the recipient (in-app + email)
+        // NO password or credential value is included
+        notificationService.createCredentialSharedNotification(
+                recipient.getId(),
+                recipient.getEmail(),
+                owner.getName(),
+                credential.getWebsiteName()
+        );
 
         return ResponseEntity.ok(Map.of("message", "Credential shared successfully."));
     }
