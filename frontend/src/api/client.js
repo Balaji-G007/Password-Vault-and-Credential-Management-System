@@ -6,7 +6,7 @@ import axios from 'axios';
 // In local dev (VITE_API_URL not set), talk to backend on 8081.
 // In production, .env.production has VITE_API_URL="" → empty string = relative /api calls via Nginx.
 const envUrl = import.meta.env.VITE_API_URL;
-export const API_BASE = envUrl !== undefined ? envUrl : 'http://localhost:8081';
+export const API_BASE = envUrl ? envUrl : 'https://password-vault-and-credential-management-vd5z.onrender.com';
 
 const api = axios.create({ baseURL: API_BASE });
 
