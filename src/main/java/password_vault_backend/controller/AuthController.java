@@ -5,6 +5,7 @@ import password_vault_backend.model.User;
 import password_vault_backend.repository.LoginLogRepository;
 import password_vault_backend.repository.UserRepository;
 import password_vault_backend.security.JwtUtil;
+import password_vault_backend.Service.EmailService;
 import password_vault_backend.Service.NotificationService;
 import password_vault_backend.Service.SuspiciousActivityService;
 
@@ -31,6 +32,8 @@ public class AuthController {
     @Autowired private LoginLogRepository loginLogRepository;
     @Autowired private SuspiciousActivityService suspiciousActivityService;
     @Autowired private NotificationService notificationService;
+    @Autowired
+private EmailService emailService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
@@ -88,22 +91,17 @@ public class AuthController {
         user.setOtpExpiry(expiry);
         userRepository.save(user);
 
-        // Print OTP to Render console logs
+        // Render console log fallback
         System.out.println("==========================================");
         System.out.println("  VAULTKEEP RESET OTP FOR " + user.getEmail() + ": " + otp);
         System.out.println("==========================================");
 
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom("balajigbalaji4321@gmail.com");
-            message.setTo(user.getEmail());
-            message.setSubject("VaultKeep - Password Reset Code");
-            message.setText("Your VaultKeep password reset code is: " + otp
-                    + "\n\nThis code expires in 10 minutes. If you didn't request this, you can ignore this email.");
-            mailSender.send(message);
-        } catch (Exception e) {
-            System.err.println("SMTP dispatch failed: " + e.getMessage());
-        }
+        // Send via Brevo HTTPS API
+        emailService.sendEmail(
+            user.getEmail(),
+            "VaultKeep - Password Reset Code",
+            "Your VaultKeep password reset code is: " + otp + "\n\nThis code expires in 10 minutes. If you didn't request this, you can ignore this email."
+        );
 
         return ResponseEntity.ok(Map.of("message", "OTP has been sent to your email."));
     }
