@@ -2,6 +2,7 @@ package password_vault_backend.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -17,7 +18,6 @@ import java.util.List;
 @Configuration
 public class SecurityConfig {
 
-    // Used to hash and check passwords - never store plain text passwords
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -28,14 +28,12 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            // No sessions - each request proves who it is via its own JWT
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Anyone can register/login without already having a token
+                // Explicitly allow all CORS preflight OPTIONS checks
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
-                // Password generator/strength checker don't need login either
                 .requestMatchers("/api/password-tools/**").permitAll()
-                // Everything else requires a valid JWT
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -43,13 +41,20 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // Lets your React/HTML frontend (different port) call this API
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        // Allow frontend origins (including production Render domain and local testing)
+        configuration.setAllowedOrigins(List.of(
+            "https://password-vault-frontend-wpi3.onrender.com",
+            "http://localhost:3000",
+            "http://localhost:5173"
+        ));
+        // Added PATCH here so read/unread updates succeed
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setExposedHeaders(List.of("Authorization"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
