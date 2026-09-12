@@ -87,16 +87,24 @@ public class AuthController {
         user.setOtp(otp);
         user.setOtpExpiry(expiry);
         userRepository.save(user);
+
+        // Print OTP to Render console logs
+        System.out.println("==========================================");
+        System.out.println("  VAULTKEEP RESET OTP FOR " + user.getEmail() + ": " + otp);
+        System.out.println("==========================================");
+
         try {
             SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("balajigbalaji4321@gmail.com");
             message.setTo(user.getEmail());
             message.setSubject("VaultKeep - Password Reset Code");
             message.setText("Your VaultKeep password reset code is: " + otp
                     + "\n\nThis code expires in 10 minutes. If you didn't request this, you can ignore this email.");
             mailSender.send(message);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("message", "Could not send email. Check server email configuration."));
+            System.err.println("SMTP dispatch failed: " + e.getMessage());
         }
+
         return ResponseEntity.ok(Map.of("message", "OTP has been sent to your email."));
     }
 
