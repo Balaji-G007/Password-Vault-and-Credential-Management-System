@@ -1,8 +1,10 @@
 package password_vault_backend.controller;
 
 import password_vault_backend.model.Credential;
+import password_vault_backend.model.SharedCredential;
 import password_vault_backend.model.User;
 import password_vault_backend.repository.CredentialRepository;
+import password_vault_backend.repository.SharedCredentialRepository;
 import password_vault_backend.repository.UserRepository;
 import password_vault_backend.security.EncryptionUtil;
 import password_vault_backend.Service.AuditLogService;
@@ -12,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -21,34 +25,57 @@ import java.util.stream.Collectors;
 public class CredentialController {
 
     @Autowired private CredentialRepository credentialRepository;
+    @Autowired private SharedCredentialRepository sharedCredentialRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private EncryptionUtil encryptionUtil;
     @Autowired private AuditLogService auditLogService;
 
     private Long getCurrentUserId() {
-    String email = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-    User user = userRepository.findByEmail(email);
-    return user.getId();
-}
+        String email = getCurrentUserEmail();
+        User user = userRepository.findByEmail(email);
+        return user.getId();
+    }
 
     private String getCurrentUserEmail() {
         return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 
-    // GET /api/credentials - list all of the logged-in user's saved credentials
+    // GET /api/credentials - returns both owned credentials and active credentials shared with me
     @GetMapping
     public ResponseEntity<?> getAll() {
         Long userId = getCurrentUserId();
-        List<Credential> credentials = credentialRepository.findByUserId(userId);
+        String userEmail = getCurrentUserEmail();
 
-        List<Map<String, Object>> response = credentials.stream().map(c -> {
-            Map<String, Object> item = new java.util.HashMap<>();
+        List<Map<String, Object>> response = new ArrayList<>();
+
+        // 1. Owned credentials
+        List<Credential> owned = credentialRepository.findByUserId(userId);
+        for (Credential c : owned) {
+            Map<String, Object> item = new HashMap<>();
             item.put("id", c.getId());
             item.put("websiteName", c.getWebsiteName());
             item.put("username", c.getUsername());
             item.put("password", encryptionUtil.decrypt(c.getEncryptedPassword()));
-            return item;
-        }).collect(Collectors.toList());
+            item.put("isShared", false);
+            response.add(item);
+        }
+
+        // 2. Credentials shared with the current user
+        List<SharedCredential> sharedWithMe = sharedCredentialRepository.findBySharedWithEmail(userEmail);
+        for (SharedCredential share : sharedWithMe) {
+            if (!share.isActive()) continue;
+
+            credentialRepository.findById(share.getCredentialId()).ifPresent(cred -> {
+                Map<String, Object> item = new HashMap<>();
+                item.put("id", cred.getId());
+                item.put("websiteName", cred.getWebsiteName() + " (Shared with you)");
+                item.put("username", cred.getUsername());
+                item.put("password", encryptionUtil.decrypt(cred.getEncryptedPassword()));
+                item.put("isShared", true);
+                item.put("expiresAt", share.getExpiresAt());
+                response.add(item);
+            });
+        }
 
         return ResponseEntity.ok(response);
     }
@@ -77,11 +104,9 @@ public class CredentialController {
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody CredentialRequest request) {
         Long userId = getCurrentUserId();
 
-        Credential credential = credentialRepository.findByIdAndUserId(id, userId)
-                .orElse(null);
-
+        Credential credential = credentialRepository.findByIdAndUserId(id, userId).orElse(null);
         if (credential == null) {
-            return ResponseEntity.status(404).body(Map.of("message", "Credential not found."));
+            return ResponseEntity.status(404).body(Map.of("message", "Credential not found or read-only."));
         }
 
         credential.setWebsiteName(request.getWebsiteName());
@@ -99,9 +124,7 @@ public class CredentialController {
     public ResponseEntity<?> delete(@PathVariable Long id) {
         Long userId = getCurrentUserId();
 
-        Credential credential = credentialRepository.findByIdAndUserId(id, userId)
-                .orElse(null);
-
+        Credential credential = credentialRepository.findByIdAndUserId(id, userId).orElse(null);
         if (credential == null) {
             return ResponseEntity.status(404).body(Map.of("message", "Credential not found."));
         }
